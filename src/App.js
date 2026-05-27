@@ -1,413 +1,577 @@
 import { useState, useEffect } from "react";
 
-const MEMBERS = [
-  { id: 1, name: "김지수", avatar: "지수", color: "#6D28D9" },
-  { id: 2, name: "이민준", avatar: "민준", color: "#1D4ED8" },
-  { id: 3, name: "박서연", avatar: "서연", color: "#065F46" },
-  { id: 4, name: "최다은", avatar: "다은", color: "#B45309" },
-  { id: 5, name: "정우진", avatar: "우진", color: "#BE185D" },
-  { id: 6, name: "한소희", avatar: "소희", color: "#0369A1" },
-];
-
-const MEETINGS = [
-  {
-    id: 1,
-    type: "금요 기도회",
-    date: "2025년 5월 30일 (금)",
-    time: "19:00",
-    location: "본관 302호",
-    open: true,
-  },
-  {
-    id: 2,
-    type: "화요 채플",
-    date: "2025년 6월 3일 (화)",
-    time: "12:00",
-    location: "채플실",
-    open: false,
-  },
-];
-
+// ── 데이터 및 환경 설정 ──────────────────────────────────────────────────
 const STATUS_CONFIG = {
-  attend: { label: "참석", bg: "#DCFCE7", color: "#15803D", border: "#16A34A" },
-  late:   { label: "지각", bg: "#FEF9C3", color: "#92400E", border: "#CA8A04" },
+  attend: { label: "참석", bg: "#F0FDF4", color: "#166534", border: "#16A34A" },
+  late:   { label: "지각", bg: "#FEF9C3", color: "#854D0E", border: "#CA8A04" },
   absent: { label: "불참", bg: "#FEE2E2", color: "#991B1B", border: "#DC2626" },
-  pending:{ label: "미응답", bg: "#F3F4F6", color: "#6B7280", border: "#D1D5DB" },
+  pending:{ label: "미응답", bg: "#F5F5F4", color: "#78716C", border: "#E7E5E4" },
 };
 
-const ICONS = {
-  bell: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-    </svg>
-  ),
-  calendar: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-  ),
-  clock: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-    </svg>
-  ),
-  pin: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-    </svg>
-  ),
-  check: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
-  ),
-  users: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
-  ),
-  chart: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-    </svg>
-  ),
-  bulb: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/>
-      <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
-    </svg>
-  ),
+const MEETINGS = {
+  campus: { id: "campus", title: "캠퍼스 채플", info: "매주 목요일 18:30 | 대강당" },
+  district: { id: "district", title: "지구 채플", info: "매주 금요일 19:00 | 센터" }
 };
 
-function Avatar({ name, color, size = 28 }) {
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: color + "22", color,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: size * 0.35, fontWeight: 500, flexShrink: 0,
-    }}>
-      {name[0]}
-    </div>
-  );
+const STORAGE_KEY = "ccc-gather-votes-v4";
+const ADMIN_PASSWORD = "soon"; 
+
+function loadVotes() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : { campus: {}, district: {} };
+  } catch {
+    return { campus: {}, district: {} };
+  }
 }
 
-function StatusPill({ status }) {
-  const cfg = STATUS_CONFIG[status];
-  return (
-    <span style={{
-      fontSize: 11, fontWeight: 500, padding: "3px 9px", borderRadius: 20,
-      background: cfg.bg, color: cfg.color,
-    }}>
-      {cfg.label}
-    </span>
-  );
+function saveVotes(votes) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(votes));
+  } catch {}
 }
 
-function PhoneFrame({ label, accentColor, children }) {
+const THEME = {
+  bg: "#FDFBF7",         
+  cardBg: "#FFFFFF",     
+  border: "#EFEBE3",     
+  textMain: "#44403C",   
+  textSub: "#78716C",    
+  primary: "#D97706",    
+};
+
+// ── 공통 컴포넌트 ────────────────────────────────────────────────────────────
+
+function Header({ title, sub, onBack }) {
   return (
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <p style={{ fontSize: 11, color: "#9CA3AF", textAlign: "center", marginBottom: 10, letterSpacing: 1, textTransform: "uppercase" }}>
-        {label}
-      </p>
-      <div style={{
-        background: "#F9FAFB", borderRadius: 28, padding: 10,
-        border: "0.5px solid #E5E7EB",
-      }}>
-        <div style={{
-          background: "#111827", borderRadius: "18px 18px 0 0",
-          height: 28, display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#374151" }} />
-        </div>
-        <div style={{
-          background: "#fff", borderRadius: "0 0 18px 18px",
-          maxHeight: 580, overflowY: "auto", padding: "14px 12px",
-          scrollbarWidth: "none",
-        }}>
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MemberScreen({ votes, onVote }) {
-  const meeting = MEETINGS[0];
-  const next = MEETINGS[1];
-  const myVote = votes["me"] || null;
-
-  return (
-    <>
-      {/* Push 배너 */}
-      <div style={{
-        background: "#1C1C1E", borderRadius: 12, padding: "10px 12px",
-        display: "flex", gap: 10, marginBottom: 14, alignItems: "flex-start",
-      }}>
-        <div style={{
-          width: 34, height: 34, borderRadius: 9, background: "#4F46E5",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: "#fff", flexShrink: 0,
-        }}>
-          {ICONS.bell}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 10, color: "#9CA3AF", marginBottom: 2 }}>CCC 모임 · 방금 전</div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "#fff", marginBottom: 2 }}>금요 기도회 공지</div>
-          <div style={{ fontSize: 11, color: "#D1D5DB", lineHeight: 1.5 }}>
-            이번 주 금요일 7시, 본관 302호에서 열립니다. 참석 여부를 알려주세요!
-          </div>
-        </div>
-      </div>
-
-      {/* 앱 헤더 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <div style={{
-          width: 34, height: 34, borderRadius: 9, background: "#4F46E5",
-          display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
-        }}>
-          {ICONS.users}
-        </div>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {onBack && (
+          <button 
+            onClick={onBack}
+            style={{
+              border: "none", background: "none", fontSize: 18, cursor: "pointer",
+              color: THEME.textMain, padding: "4px 6px", borderRadius: 8,
+            }}
+          >
+            ←
+          </button>
+        )}
         <div>
-          <div style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>CCC 모임</div>
-          <div style={{ fontSize: 11, color: "#6B7280" }}>한빛 순 · 2025년 가을학기</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: THEME.textMain }}>{title}</div>
+          {sub && <div style={{ fontSize: 12, color: THEME.textSub, marginTop: 2 }}>{sub}</div>}
         </div>
       </div>
-
-      {/* 모임 카드 */}
-      <div style={{
-        background: "#fff", border: "0.5px solid #E5E7EB", borderRadius: 14,
-        padding: 14, marginBottom: 12,
-      }}>
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: 4,
-          fontSize: 11, fontWeight: 500, background: "#EDE9FE", color: "#5B21B6",
-          padding: "3px 9px", borderRadius: 20, marginBottom: 8,
-        }}>
-          {ICONS.calendar} 이번 주 모임
-        </div>
-        <div style={{ fontSize: 15, fontWeight: 500, color: "#111827", marginBottom: 4 }}>{meeting.type}</div>
-        <div style={{ display: "flex", gap: 10, fontSize: 12, color: "#6B7280", marginBottom: 12, flexWrap: "wrap" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>{ICONS.clock} {meeting.date} {meeting.time}</span>
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>{ICONS.pin} {meeting.location}</span>
-        </div>
-
-        <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 8 }}>출석 여부를 선택해주세요</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-          {["attend", "late", "absent"].map(s => {
-            const cfg = STATUS_CONFIG[s];
-            const selected = myVote === s;
-            return (
-              <button
-                key={s}
-                onClick={() => onVote("me", s)}
-                style={{
-                  padding: "9px 4px", borderRadius: 9, cursor: "pointer",
-                  border: `1.5px solid ${cfg.border}`,
-                  background: selected ? cfg.border : cfg.bg,
-                  color: selected ? "#fff" : cfg.color,
-                  fontSize: 12, fontWeight: 500, display: "flex",
-                  flexDirection: "column", alignItems: "center", gap: 3,
-                  transition: "all 0.15s ease",
-                }}
-              >
-                {s === "attend" && ICONS.check}
-                {s === "late" && ICONS.clock}
-                {s === "absent" && <span style={{ fontSize: 14, lineHeight: 1 }}>×</span>}
-                {cfg.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 다음 모임 */}
-      <div style={{ fontSize: 11, fontWeight: 500, color: "#9CA3AF", marginBottom: 8, letterSpacing: 0.3 }}>예정된 모임</div>
-      <div style={{
-        background: "#fff", border: "0.5px solid #E5E7EB", borderRadius: 14,
-        padding: 14, opacity: 0.65,
-      }}>
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: 4,
-          fontSize: 11, fontWeight: 500, background: "#DBEAFE", color: "#1E40AF",
-          padding: "3px 9px", borderRadius: 20, marginBottom: 8,
-        }}>
-          {ICONS.calendar} 다음 주
-        </div>
-        <div style={{ fontSize: 15, fontWeight: 500, color: "#111827", marginBottom: 4 }}>{next.type}</div>
-        <div style={{ display: "flex", gap: 10, fontSize: 12, color: "#6B7280", marginBottom: 8 }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>{ICONS.clock} {next.date} {next.time}</span>
-        </div>
-        <div style={{ fontSize: 11, color: "#9CA3AF" }}>공지 예정 · 투표 미오픈</div>
-      </div>
-    </>
+      <div style={{ fontSize: 18 }}>✝️</div>
+    </div>
   );
 }
 
-function AdminScreen({ votes }) {
-  const total = MEMBERS.length;
-  const attendCount = MEMBERS.filter(m => votes[m.id] === "attend").length;
-  const lateCount   = MEMBERS.filter(m => votes[m.id] === "late").length;
-  const absentCount = MEMBERS.filter(m => votes[m.id] === "absent").length;
-  const pending     = total - attendCount - lateCount - absentCount;
-  const voted       = total - pending;
-  const rate        = voted > 0 ? Math.round(((attendCount + lateCount * 0.7) / total) * 100) : 0;
-  const snacks      = attendCount + lateCount;
+// ── 1단계: 이름 및 직분 입력 화면 ───────────────────────────────────────────────
 
-  const Bar = ({ count, color, label }) => {
-    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-    return (
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#6B7280", marginBottom: 4 }}>
-          <span style={{ color, fontWeight: 500 }}>{label} {count}명</span>
-          <span>{pct}%</span>
-        </div>
-        <div style={{ background: "#F3F4F6", borderRadius: 4, height: 7, overflow: "hidden" }}>
-          <div style={{ background: color, width: `${pct}%`, height: "100%", borderRadius: 4, transition: "width 0.4s ease" }} />
-        </div>
-      </div>
-    );
+function NameInputScreen({ onNext, onAdminClick }) {
+  const [name, setName] = useState("");
+  const [role, setRole] = useState("순원"); // 기본값 '순원'
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name.trim()) return alert("이름을 입력해주세요!");
+    onNext(name.trim(), role);
   };
 
   return (
-    <>
-      {/* 앱 헤더 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <div style={{
-          width: 34, height: 34, borderRadius: 9, background: "#0F6E56",
-          display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
-        }}>
-          {ICONS.chart}
-        </div>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>한빛 순 관리자</div>
-          <div style={{ fontSize: 11, color: "#6B7280" }}>금요 기도회 · 5월 30일</div>
-        </div>
+    <div style={{ padding: "40px 20px", maxWidth: 400, margin: "40px auto 0" }}>
+      <div style={{ textAlign: "center", marginBottom: 36 }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>🌾</div>
+        <div style={{ fontSize: 24, fontWeight: 800, color: THEME.textMain, letterSpacing: "-0.5px" }}>CCC SOON</div>
+        <div style={{ fontSize: 13, color: THEME.textSub, marginTop: 6 }}>따뜻한 순 모임 출석 체크</div>
       </div>
 
-      {/* 예상 참석률 카드 */}
-      <div style={{ background: "#fff", border: "0.5px solid #E5E7EB", borderRadius: 14, padding: 14, marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>예상 참석 현황</span>
-          <span style={{ fontSize: 11, color: "#6B7280" }}>투표율 {Math.round((voted / total) * 100)}%</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12 }}>
-          <span style={{ fontSize: 30, fontWeight: 500, color: "#16A34A" }}>{rate}%</span>
-          <span style={{ fontSize: 12, color: "#6B7280" }}>예상 참석률</span>
-        </div>
-        <Bar count={attendCount} color="#16A34A" label="참석" />
-        <Bar count={lateCount}   color="#D97706" label="지각" />
-        <Bar count={absentCount} color="#DC2626" label="불참" />
-        <div style={{ fontSize: 10, color: "#9CA3AF", textAlign: "right", marginTop: 4 }}>
-          ✦ 자동 집계됨
-        </div>
-      </div>
+      <form onSubmit={handleSubmit} style={{ background: THEME.cardBg, padding: 24, borderRadius: 20, border: `1px solid ${THEME.border}`, boxShadow: "0 4px 20px rgba(68,64,60,0.03)" }}>
+        <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: THEME.textMain, marginBottom: 8 }}>이름을 입력해주세요</label>
+        <input 
+          type="text" 
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="이름 입력"
+          style={{
+            width: "100%", padding: "14px 16px", borderRadius: 12, border: `1px solid ${THEME.border}`,
+            backgroundColor: "#FAF9F5", fontSize: 15, color: THEME.textMain, outline: "none",
+            boxSizing: "border-box", marginBottom: 16
+          }}
+        />
 
-      {/* 자동 준비 안내 */}
-      <div style={{
-        background: "#F0FDF4", border: "0.5px solid #BBF7D0", borderRadius: 10,
-        padding: "10px 12px", marginBottom: 12,
-      }}>
-        <div style={{ fontSize: 12, fontWeight: 500, color: "#15803D", marginBottom: 4, display: "flex", alignItems: "center", gap: 5 }}>
-          {ICONS.bulb} 자동 준비 안내
+        {/* [요청 반영] 순장 / 순원 선택 라디오 스타일 버튼 */}
+        <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: THEME.textMain, marginBottom: 8 }}>직분을 선택해주세요</label>
+        <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+          {["순원", "순장"].map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRole(r)}
+              style={{
+                flex: 1, padding: "12px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer",
+                border: `1px solid ${role === r ? THEME.primary : THEME.border}`,
+                background: role === r ? THEME.primary : "#FAF9F5",
+                color: role === r ? "#FFF" : THEME.textMain,
+                transition: "all 0.2s"
+              }}
+            >
+              {r === "순장" ? "🌱 " : "🍃 "} {r}
+            </button>
+          ))}
         </div>
-        <div style={{ fontSize: 11, color: "#166534", lineHeight: 1.7 }}>
-          예상 참석 <strong>{snacks}명</strong> 기준<br />
-          음료 준비: <strong>{snacks}개</strong> · 간식: <strong>{Math.ceil(snacks / 6)}팩</strong><br />
-          의자 배치: <strong>{snacks}석</strong> (예비 3석 권장)
-        </div>
-      </div>
 
-      {/* 순원별 현황 */}
-      <div style={{ fontSize: 11, fontWeight: 500, color: "#9CA3AF", marginBottom: 8, letterSpacing: 0.3 }}>순원별 응답 현황</div>
-      <div style={{ background: "#fff", border: "0.5px solid #E5E7EB", borderRadius: 14, padding: "10px 12px" }}>
-        {MEMBERS.map((m, i) => {
-          const status = votes[m.id] || "pending";
+        <button 
+          type="submit"
+          style={{
+            width: "100%", padding: "14px", borderRadius: 12, border: "none",
+            background: THEME.textMain, color: "#fff", fontWeight: 600, fontSize: 15, cursor: "pointer"
+          }}
+        >
+          모임 투표하러 가기
+        </button>
+      </form>
+
+      <button 
+        onClick={onAdminClick}
+        style={{
+          width: "100%", marginTop: 24, padding: "12px", borderRadius: 12, border: `1px dashed ${THEME.border}`,
+          background: "transparent", color: THEME.textSub, fontSize: 13, cursor: "pointer"
+        }}
+      >
+        🔒 관리자 모아보기 (통합 현황)
+      </button>
+    </div>
+  );
+}
+
+// ── 2&3단계 통합: 일정 바로 밑에 투표 기능이 붙어있는 모임 선택 화면 ──────────
+
+function CombinedVoteScreen({ userName, userRole, votes, onVoteSubmitted, onGoHome, onBack }) {
+  const [activeSelections, setActiveSelections] = useState({
+    campus: votes.campus[userName]?.status || null,
+    district: votes.district[userName]?.status || null
+  });
+  
+  const [reasons, setReasons] = useState({
+    campus: votes.campus[userName]?.reason || "",
+    district: votes.district[userName]?.reason || ""
+  });
+
+  const [submittedMeetings, setSubmittedMeetings] = useState({
+    campus: false,
+    district: false
+  });
+
+  // 투표 버튼 클릭 이벤트
+  const handleStatusSelect = (meetingId, status) => {
+    setActiveSelections(prev => ({ ...prev, [meetingId]: status }));
+    
+    // '참석'은 사유가 없으므로 즉시 완료 처리
+    if (status === "attend") {
+      setSubmittedMeetings(prev => ({ ...prev, [meetingId]: true }));
+      onVoteSubmitted(meetingId, status, "");
+    }
+  };
+
+  // 지각/불참 사유 제출 이벤트
+  const handleReasonSubmit = (e, meetingId) => {
+    e.preventDefault();
+    const currentStatus = activeSelections[meetingId];
+    const currentReason = reasons[meetingId].trim();
+    
+    // [요청 반영] 불참일 때만 사유 필수체크, 지각일 때는 빈칸 허용
+    if (currentStatus === "absent" && !currentReason) {
+      return alert("불참 사유를 작성해 주세요!");
+    }
+    
+    setSubmittedMeetings(prev => ({ ...prev, [meetingId]: true }));
+    onVoteSubmitted(meetingId, currentStatus, currentReason);
+  };
+
+  return (
+    <div style={{ padding: "24px 20px", maxWidth: 420, margin: "0 auto" }}>
+      <Header title="모임 선택 및 투표" sub={`${userName} ${userRole}님, 투표를 진행해 주세요.`} onBack={onBack} />
+      
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 12 }}>
+        {Object.values(MEETINGS).map(m => {
+          const selectedStatus = activeSelections[m.id];
+          const hasVotedThis = votes[m.id]?.[userName];
+
+          // [요청 반영] 투표 완료 시 자동으로 튕기지 않고 화면 안에서 피드백 제공 후 홈 이동 버튼 활성화
+          if (submittedMeetings[m.id]) {
+            return (
+              <div key={m.id} style={{ background: THEME.cardBg, border: `1px solid ${THEME.border}`, padding: 24, borderRadius: 16, textAlign: "center" }}>
+                <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.textMain }}>{m.title} 투표 완료!</div>
+                <button
+                  onClick={onGoHome}
+                  style={{
+                    marginTop: 12, padding: "8px 16px", borderRadius: 8, border: "none",
+                    background: THEME.primary, color: "#FFF", fontSize: 12, fontWeight: 600, cursor: "pointer"
+                  }}
+                >
+                  🏠 홈 화면으로 가기
+                </button>
+              </div>
+            );
+          }
+
           return (
-            <div key={m.id} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "7px 0",
-              borderBottom: i < MEMBERS.length - 1 ? "0.5px solid #F3F4F6" : "none",
-            }}>
-              <Avatar name={m.avatar} color={m.color} size={26} />
-              <span style={{ flex: 1, fontSize: 12, color: "#111827" }}>{m.name}</span>
-              <StatusPill status={status} />
+            <div
+              key={m.id}
+              style={{
+                background: THEME.cardBg, border: `1px solid ${THEME.border}`, padding: 18,
+                borderRadius: 16, boxShadow: "0 2px 6px rgba(0,0,0,0.01)", display: "flex", flexDirection: "column"
+              }}
+            >
+              {/* 상단 일정 타이틀 정보 */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: THEME.textMain, marginBottom: 4 }}>{m.title}</div>
+                <div style={{ fontSize: 12, color: THEME.textSub }}>{m.info}</div>
+              </div>
+
+              {/* 일정 바로 밑에 배치된 3단 투표 버튼 */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: (selectedStatus === "late" || selectedStatus === "absent") ? 12 : 0 }}>
+                {["attend", "late", "absent"].map(s => {
+                  const cfg = STATUS_CONFIG[s];
+                  const isCurrent = selectedStatus === s;
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => handleStatusSelect(m.id, s)}
+                      style={{
+                        padding: "10px 4px", borderRadius: 10, cursor: "pointer",
+                        border: `2px solid ${isCurrent ? cfg.border : "transparent"}`,
+                        background: isCurrent ? cfg.bg : "#F5F4F0",
+                        color: cfg.color,
+                        fontSize: 13, fontWeight: 700, display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                        transition: "all 0.15s"
+                      }}
+                    >
+                      <span style={{ fontSize: 16 }}>
+                        {s === "attend" && "✅"}
+                        {s === "late" && "⏰"}
+                        {s === "absent" && "❌"}
+                      </span>
+                      {cfg.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* 지각/불참 시 사유 기입 칸 노출 */}
+              {(selectedStatus === "late" || selectedStatus === "absent") && (
+                <form onSubmit={(e) => handleReasonSubmit(e, m.id)} style={{ borderTop: `1px dashed ${THEME.border}`, paddingTop: 12, marginTop: 4 }}>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: THEME.textMain, marginBottom: 4 }}>
+                    {selectedStatus === "late" ? "⏰ 지각 사유 (선택사항)" : "❌ 불참 사유 (필수)"}
+                  </label>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input 
+                      type="text"
+                      value={reasons[m.id]}
+                      onChange={(e) => setReasons(prev => ({ ...prev, [m.id]: e.target.value }))}
+                      placeholder={selectedStatus === "late" ? "사유 미적고 제출 가능" : "사유를 입력해 주세요"}
+                      style={{
+                        flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${THEME.border}`,
+                        fontSize: 13, color: THEME.textMain, outline: "none", boxSizing: "border-box"
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      style={{
+                        padding: "0 14px", borderRadius: 8, border: "none",
+                        background: THEME.textMain, color: "#fff", fontWeight: 600, fontSize: 12, cursor: "pointer"
+                      }}
+                    >
+                      제출
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* 기존 저장된 투표 내역 뱃지 알림 */}
+              {hasVotedThis && !selectedStatus && (
+                <div style={{ marginTop: 8, fontSize: 11, color: STATUS_CONFIG[hasVotedThis.status].color, fontWeight: 500 }}>
+                  ✓ 현재 응답 완료 상태: [{STATUS_CONFIG[hasVotedThis.status].label}] {hasVotedThis.reason && `(${hasVotedThis.reason})`}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
-
-      {/* 통계 요약 */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 12 }}>
-        {[
-          { num: attendCount, label: "참석", color: "#16A34A" },
-          { num: lateCount,   label: "지각", color: "#D97706" },
-          { num: absentCount, label: "불참", color: "#DC2626" },
-        ].map(s => (
-          <div key={s.label} style={{
-            background: "#F9FAFB", borderRadius: 10, padding: "10px 8px", textAlign: "center",
-          }}>
-            <div style={{ fontSize: 22, fontWeight: 500, color: s.color }}>{s.num}</div>
-            <div style={{ fontSize: 10, color: "#9CA3AF" }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-    </>
+      
+      <button
+        onClick={onGoHome}
+        style={{
+          width: "100%", marginTop: 20, padding: "14px", borderRadius: 12, border: `1px solid ${THEME.border}`,
+          background: "#FFF", color: THEME.textMain, fontWeight: 600, fontSize: 14, cursor: "pointer"
+        }}
+      >
+        🏠 그냥 홈화면 가기
+      </button>
+    </div>
   );
 }
 
-export default function App() {
-  const [votes, setVotes] = useState({
-    "me": "attend",
-    1: "attend",
-    2: "late",
-    3: "absent",
-  });
+// ── 관리자 비밀번호 입력 화면 ────────────────────────────────────────────────
 
-  const handleVote = (id, status) => {
-    setVotes(prev => ({ ...prev, [id]: status }));
+function AdminAuthScreen({ onAuthSuccess, onBack }) {
+  const [password, setPassword] = useState("");
+
+  const handleVerify = (e) => {
+    e.preventDefault();
+    if (password === ADMIN_PASSWORD) {
+      onAuthSuccess();
+    } else {
+      alert("비밀번호가 틀렸습니다! (기본값: soon)");
+    }
   };
 
   return (
-    <div style={{ fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif", padding: "20px 16px", maxWidth: 720, margin: "0 auto" }}>
-      {/* 상단 탭: 순원 투표 시뮬레이션 */}
-      <div style={{
-        background: "#F0F4FF", border: "0.5px solid #C7D2FE", borderRadius: 10,
-        padding: "10px 14px", marginBottom: 20, fontSize: 12, color: "#3730A3",
-      }}>
-        <strong>순원 화면에서 투표 버튼을 눌러보세요</strong> — 관리자 화면 통계가 실시간으로 바뀝니다.
-        <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {MEMBERS.map(m => (
-            <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ fontSize: 11, color: "#6B7280" }}>{m.name}:</span>
-              {["attend", "late", "absent"].map(s => (
-                <button
-                  key={s}
-                  onClick={() => handleVote(m.id, s)}
-                  style={{
-                    fontSize: 10, padding: "2px 6px", borderRadius: 6, cursor: "pointer",
-                    border: `1px solid ${STATUS_CONFIG[s].border}`,
-                    background: votes[m.id] === s ? STATUS_CONFIG[s].border : STATUS_CONFIG[s].bg,
-                    color: votes[m.id] === s ? "#fff" : STATUS_CONFIG[s].color,
-                    fontWeight: 500,
-                  }}
-                >
-                  {STATUS_CONFIG[s].label}
-                </button>
-              ))}
+    <div style={{ padding: "40px 20px", maxWidth: 400, margin: "60px auto 0" }}>
+      <Header title="관리자 인증" sub="비밀번호를 입력해 주세요." onBack={onBack} />
+      
+      <form onSubmit={handleVerify} style={{ background: THEME.cardBg, padding: 24, borderRadius: 20, border: `1px solid ${THEME.border}` }}>
+        <input 
+          type="password" 
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password (soon)"
+          style={{
+            width: "100%", padding: "14px 16px", borderRadius: 12, border: `1px solid ${THEME.border}`,
+            backgroundColor: "#FAF9F5", fontSize: 15, outline: "none", boxSizing: "border-box", marginBottom: 16
+          }}
+        />
+        <button 
+          type="submit"
+          style={{
+            width: "100%", padding: "14px", borderRadius: 12, border: "none",
+            background: THEME.textMain, color: "#fff", fontWeight: 600, fontSize: 15, cursor: "pointer"
+          }}
+        >
+          로그인
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// ── 관리자: 통합 명단 및 퍼센트 바 확인 화면 ─────────────────────────────────
+
+function AdminDashboardScreen({ votes, onReset, onBack }) {
+  
+  const getMeetingDetails = (typeVotes) => {
+    const list = Object.entries(typeVotes).map(([name, data]) => ({
+      name,
+      role: data.role || "순원", // 기존 데이터 호환성 체크
+      status: data.status,
+      reason: data.reason || ""
+    }));
+
+    const attendList = list.filter(m => m.status === "attend");
+    const lateList = list.filter(m => m.status === "late");
+    const absentList = list.filter(m => m.status === "absent");
+    const total = list.length;
+
+    const attendPct = total > 0 ? Math.round((attendList.length / total) * 100) : 0;
+    const latePct = total > 0 ? Math.round((lateList.length / total) * 100) : 0;
+    const absentPct = total > 0 ? Math.round((absentList.length / total) * 100) : 0;
+
+    // [요청 반영] 예상 출석률 계산: (참석 + 지각) / 전체 투표자
+    const expectedAttendancePct = total > 0 
+      ? Math.round(((attendList.length + lateList.length) / total) * 100) 
+      : 0;
+
+    return { attendList, lateList, absentList, total, attendPct, latePct, absentPct, expectedAttendancePct };
+  };
+
+  const campus = getMeetingDetails(votes.campus);
+  const district = getMeetingDetails(votes.district);
+
+  function MeetingSection({ title, data }) {
+    return (
+      <div style={{ background: THEME.cardBg, border: `1px solid ${THEME.border}`, borderRadius: 18, padding: 18, marginBottom: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.01)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: THEME.textMain }}>
+            🏢 {title} <span style={{ fontSize: 11, color: THEME.primary, marginLeft: 4 }}>(총 {data.total}명 참여)</span>
+          </div>
+          {/* [요청 반영] 우측 상단에 노출되는 실시간 예상 출석률 디자인 */}
+          {data.total > 0 && (
+            <div style={{ background: "#EFF6FF", color: "#1E40AF", padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, border: "1px solid #BFDBFE" }}>
+              📈 예상 출석률: {data.expectedAttendancePct}%
             </div>
-          ))}
+          )}
         </div>
+
+        {/* 퍼센티지 시각화 바 */}
+        {data.total > 0 ? (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", height: 10, borderRadius: 5, overflow: "hidden", background: "#EFEBE3", marginBottom: 6 }}>
+              <div style={{ width: `${data.attendPct}%`, background: "#16A34A" }} />
+              <div style={{ width: `${data.latePct}%`, background: "#CA8A04" }} />
+              <div style={{ width: `${data.absentPct}%`, background: "#DC2626" }} />
+            </div>
+            <div style={{ display: "flex", gap: 12, fontSize: 11, fontWeight: 600 }}>
+              <span style={{ color: "#166534" }}>참석 {data.attendPct}%</span>
+              <span style={{ color: "#854D0E" }}>지각 {data.latePct}%</span>
+              <span style={{ color: "#991B1B" }}>불참 {data.absentPct}%</span>
+            </div>
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: THEME.textSub, textAlign: "center", padding: "10px 0" }}>투표 데이터가 없습니다.</div>
+        )}
+
+        {/* 상세 분리 명단 (직분 표기 포함) */}
+        {data.total > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, borderTop: `1px solid ${THEME.border}`, paddingTop: 12 }}>
+            {data.attendList.length > 0 && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#166534", marginBottom: 2 }}>• 참석자 명단 ({data.attendList.length}명)</div>
+                <div style={{ fontSize: 13, color: THEME.textMain, paddingLeft: 4 }}>
+                  {data.attendList.map(m => `${m.name}(${m.role})`).join(", ")}
+                </div>
+              </div>
+            )}
+
+            {data.lateList.length > 0 && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#854D0E", marginBottom: 2 }}>• 지각자 명단 ({data.lateList.length}명)</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingLeft: 4 }}>
+                  {data.lateList.map(m => (
+                    <div key={m.name} style={{ fontSize: 13, color: THEME.textMain }}>
+                      <strong>{m.name}</strong> <span style={{ fontSize: 11, color: THEME.textSub }}>({m.role}) {m.reason ? `- 사유: ${m.reason}` : "(사유 미기재)"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {data.absentList.length > 0 && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#991B1B", marginBottom: 2 }}>• 불참자 명단 ({data.absentList.length}명)</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingLeft: 4 }}>
+                  {data.absentList.map(m => (
+                    <div key={m.name} style={{ fontSize: 13, color: THEME.textMain }}>
+                      <strong>{m.name}</strong> <span style={{ fontSize: 11, color: THEME.textSub }}>({m.role}) - 사유: {m.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "24px 20px", maxWidth: 420, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Header title="📊 실시간 통합 현황판" sub="이름별 출석 상태 및 상세 사유" onBack={onBack} />
+        <button 
+          onClick={onReset}
+          style={{
+            padding: "5px 10px", borderRadius: 8, border: `1px solid ${THEME.border}`,
+            background: "#FFF", color: "#EF4444", fontSize: 11, cursor: "pointer", fontWeight: 600
+          }}
+        >
+          초기화
+        </button>
       </div>
 
-      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-        <PhoneFrame label="순원 화면" accentColor="#4F46E5">
-          <MemberScreen votes={votes} onVote={handleVote} />
-        </PhoneFrame>
+      <MeetingSection title="캠퍼스 채플 현황" data={campus} />
+      <MeetingSection title="지구 채플 현황" data={district} />
+    </div>
+  );
+}
 
-        <PhoneFrame label="간사 관리자 화면" accentColor="#0F6E56">
-          <AdminScreen votes={votes} />
-        </PhoneFrame>
-      </div>
+// ── 메인 App 컴포넌트 ─────────────────────────────────────────────────────────
+
+export default function App() {
+  const [votes, setVotes] = useState(loadVotes);
+  const [step, setStep] = useState("NAME_INPUT"); 
+  const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("순원"); // 유저 직분 정보
+
+  useEffect(() => {
+    document.title = "KCCC SOON 출석투표";
+  }, []);
+
+  useEffect(() => {
+    saveVotes(votes);
+  }, [votes]);
+
+  const handleVoteSubmitted = (meetingId, status, reason = "") => {
+    setVotes(prev => ({
+      ...prev,
+      [meetingId]: {
+        ...prev[meetingId],
+        [userName]: { status, reason, role: userRole } // 직분 정보도 함께 투표 데이터에 저장
+      }
+    }));
+  };
+
+  const handleGoHome = () => {
+    setStep("NAME_INPUT");
+    setUserName("");
+    setUserRole("순원");
+  };
+
+  const handleReset = () => {
+    if (window.confirm("정말 모든 투표 데이터를 원격 초기화하시겠습니까?")) {
+      const resetData = { campus: {}, district: {} };
+      setVotes(resetData);
+      saveVotes(resetData);
+    }
+  };
+
+  return (
+    <div style={{
+      fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif",
+      minHeight: "100vh", backgroundColor: THEME.bg, color: THEME.textMain,
+      maxWidth: "480px", 
+      margin: "0 auto",  
+      boxShadow: "0 0 20px rgba(0,0,0,0.05)" 
+    }}>
+
+      {step === "NAME_INPUT" && (
+        <NameInputScreen 
+          onNext={(name, role) => { 
+            setUserName(name); 
+            setUserRole(role);
+            setStep("COMBINED_VOTE"); 
+          }} 
+          onAdminClick={() => setStep("ADMIN_AUTH")}
+        />
+      )}
+
+      {step === "COMBINED_VOTE" && (
+        <CombinedVoteScreen 
+          userName={userName}
+          userRole={userRole}
+          votes={votes}
+          onVoteSubmitted={handleVoteSubmitted}
+          onGoHome={handleGoHome}
+          onBack={handleGoHome}
+        />
+      )}
+
+      {step === "ADMIN_AUTH" && (
+        <AdminAuthScreen 
+          onAuthSuccess={() => setStep("ADMIN_DASHBOARD")}
+          onBack={handleGoHome}
+        />
+      )}
+
+      {step === "ADMIN_DASHBOARD" && (
+        <AdminDashboardScreen 
+          votes={votes}
+          onReset={handleReset}
+          onBack={handleGoHome}
+        />
+      )}
     </div>
   );
 }
